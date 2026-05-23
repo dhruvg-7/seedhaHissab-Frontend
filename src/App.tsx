@@ -20,6 +20,7 @@ import ProjectActivityPage from '@/pages/project-activity';
 import ProjectMembersPage from '@/pages/project-members';
 import PersonalActivityPage from '@/pages/personal-activity';
 import CounterpartyActivityPage from '@/pages/counterparty-activity';
+import LandingPage from '@/pages/landing';
 import { isAuthenticated } from '@/lib/auth';
 
 const queryClient = new QueryClient({
@@ -59,7 +60,7 @@ function App() {
             <Route path="/personal/counterparties" element={<PersonalCounterpartiesPage />} />
             <Route path="/personal/counterparties/:name" element={<PersonalCounterpartyLedgerPage />} />
             <Route path="/reminders" element={<RemindersPage />} />
-            <Route path="/" element={<Navigate to={isAuthenticated() ? '/projects' : '/login'} replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
