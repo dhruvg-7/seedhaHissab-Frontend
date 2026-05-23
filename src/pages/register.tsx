@@ -11,8 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { apiPost } from '@/lib/api';
-import { LayoutGrid } from 'lucide-react';
-
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -38,7 +36,7 @@ export default function RegisterPage() {
     try {
       const response = await apiPost<AuthResponse>('/auth/register', data);
       setToken(response.token);
-      toast({ title: 'Account created', description: 'Welcome to SeedhaHisaab!' });
+      toast({ title: 'Account created', description: 'Welcome to SeedhaHissab!' });
       navigate('/projects');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Registration failed. Please try again.';
@@ -52,8 +50,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <LayoutGrid className="w-7 h-7 text-primary" />
-          <span className="text-2xl font-semibold tracking-tight">SeedhaHisaab</span>
+          <img src="/logo.png" alt="SeedhaHissab" className="w-8 h-8 object-contain" />
+          <span className="text-2xl font-semibold tracking-tight">SeedhaHissab</span>
         </div>
         <Card>
           <CardHeader className="pb-4">

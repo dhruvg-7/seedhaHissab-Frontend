@@ -293,7 +293,7 @@ export default function ProjectMembersPage() {
                   data-testid="input-invite-email"
                 />
                 <p className="text-xs text-muted-foreground">
-                  The person must already have a SeedhaHisaab account.
+                  The person must already have a SeedhaHissab account.
                 </p>
               </div>
               <div className="space-y-2">

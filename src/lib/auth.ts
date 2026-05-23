@@ -1,3 +1,5 @@
+import { setDemoMode } from '@/lib/demo';
+
 const TOKEN_KEY = 'seedhahisaab_token';
 
 export function getToken(): string | null {
@@ -10,6 +12,7 @@ export function setToken(token: string): void {
 
 export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  setDemoMode(false);
 }
 
 export function isAuthenticated(): boolean {
