@@ -31,6 +31,10 @@ export interface InstallmentListParams {
   status?: InstallmentDerivedStatus;
   overdueOnly?: boolean;
   customerId?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  dueAfter?: string;
+  dueBefore?: string;
   page?: number;
   limit?: number;
 }
@@ -44,6 +48,10 @@ export function useInstallments(projectId?: string, params: InstallmentListParam
         status: params.status,
         overdueOnly: params.overdueOnly ?? false,
         customerId: params.customerId,
+        ...(params.minAmount != null ? { minAmount: params.minAmount } : {}),
+        ...(params.maxAmount != null ? { maxAmount: params.maxAmount } : {}),
+        ...(params.dueAfter ? { dueAfter: params.dueAfter } : {}),
+        ...(params.dueBefore ? { dueBefore: params.dueBefore } : {}),
         page: params.page ?? 0,
         limit: params.limit ?? 20,
       }),

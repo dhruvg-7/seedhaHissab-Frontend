@@ -13,11 +13,14 @@ import type {
  * presentation filter through. The default (no scope param) returns
  * OFFICIAL plus the caller's own PRIVATE rows merged chronologically.
  */
-interface ActivityParams {
+export interface ActivityParams {
   page?: number;
   limit?: number;
   type?: ActivityType;
   visibilityScope?: ActivityVisibilityScope;
+  actorUserId?: string;
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 function paramsObject(p: ActivityParams): Record<string, unknown> {
@@ -27,6 +30,9 @@ function paramsObject(p: ActivityParams): Record<string, unknown> {
   };
   if (p.type) out.type = p.type;
   if (p.visibilityScope) out.visibilityScope = p.visibilityScope;
+  if (p.actorUserId) out.actorUserId = p.actorUserId;
+  if (p.createdAfter) out.createdAfter = p.createdAfter;
+  if (p.createdBefore) out.createdBefore = p.createdBefore;
   return out;
 }
 
