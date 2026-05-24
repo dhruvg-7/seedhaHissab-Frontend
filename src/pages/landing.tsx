@@ -3,7 +3,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { useTheme } from '@/components/theme-provider';
 import { Moon, Sun, ArrowRight, Check, Play } from 'lucide-react';
 
-const appPath = isAuthenticated() ? '/projects' : '/login';
+const getAppPath = () => (isAuthenticated() ? '/projects' : '/login');
 
 const FEATURES = [
   {
