@@ -112,7 +112,7 @@ export default function LandingPage() {
               Try Demo
             </Link>
             <Link
-              to={appPath}
+              to="/login"
               className="text-sm font-medium text-primary hover:underline underline-offset-4 transition-colors"
             >
               Sign In
@@ -155,7 +155,7 @@ export default function LandingPage() {
               Try Demo — No Sign Up
             </Link>
             <Link
-              to={appPath}
+              to="/register"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-medium text-sm hover:bg-muted/50 transition-colors"
             >
               Create Account
@@ -365,7 +365,7 @@ export default function LandingPage() {
                 Open Live Demo
               </Link>
               <Link
-                to={appPath}
+                to="/register"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-border text-foreground font-medium text-base hover:bg-muted/50 transition-colors w-full sm:w-auto"
               >
                 Create Free Account
@@ -400,7 +400,7 @@ export default function LandingPage() {
               Try Demo First
             </Link>
             <Link
-              to={appPath}
+              to="/login"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:opacity-90 transition-opacity shadow-lg"
             >
               Open SeedhaHissab
@@ -423,7 +423,7 @@ export default function LandingPage() {
             <Link to="/demo" className="hover:text-foreground transition-colors">
               Try Demo
             </Link>
-            <Link to={appPath} className="hover:text-foreground transition-colors font-medium">
+            <Link to="/login" className="hover:text-foreground transition-colors font-medium">
               Open App →
             </Link>
           </div>
