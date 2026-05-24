@@ -4,9 +4,13 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActivityFeed } from '@/components/activity/activity-feed';
-import { ActivityFilter } from '@/components/activity/activity-filter';
 import { useCounterpartyActivity } from '@/hooks/use-activity';
-import type { ActivityItem, ActivityType, ActivityVisibilityScope } from '@/lib/activity-types';
+import type { ActivityItem } from '@/lib/activity-types';
+import {
+  ActivityFilterPanel,
+  ACTIVITY_FILTERS_DEFAULT,
+  type ActivityFilters,
+} from '@/components/filters/activity-filter-panel';
 
 const PAGE_LIMIT = 30;
 
@@ -15,19 +19,20 @@ export default function CounterpartyActivityPage() {
   const navigate = useNavigate();
   const decodedName = decodeURIComponent(name ?? '');
 
-  const [scope, setScope] = useState<ActivityVisibilityScope | 'ALL'>('ALL');
-  const [type, setType] = useState<ActivityType | 'ALL'>('ALL');
+  const [filters, setFilters] = useState<ActivityFilters>(ACTIVITY_FILTERS_DEFAULT);
   const [page, setPage] = useState(0);
   const [accumulated, setAccumulated] = useState<ActivityItem[]>([]);
 
   const { data, isFetching } = useCounterpartyActivity(decodedName, {
     page,
     limit: PAGE_LIMIT,
-    type: type === 'ALL' ? undefined : type,
-    visibilityScope: scope === 'ALL' ? undefined : scope,
+    type: filters.type === 'ALL' ? undefined : filters.type,
+    visibilityScope: filters.visibilityScope === 'ALL' ? undefined : filters.visibilityScope,
+    createdAfter: filters.createdAfter,
+    createdBefore: filters.createdBefore,
   });
 
-  const filterKey = `${scope}|${type}`;
+  const filterKey = `${filters.type}|${filters.visibilityScope}|${filters.createdAfter ?? ''}|${filters.createdBefore ?? ''}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
   if (lastFilterKey !== filterKey) {
     setLastFilterKey(filterKey);
@@ -64,17 +69,12 @@ export default function CounterpartyActivityPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <CardTitle className="text-base">Everything between you two</CardTitle>
-            <ActivityFilter
-              scope={scope}
-              onScopeChange={(s) => {
-                setScope(s);
-                setPage(0);
-              }}
-              type={type}
-              onTypeChange={(t) => {
-                setType(t);
+            <ActivityFilterPanel
+              filters={filters}
+              onChange={(f) => {
+                setFilters(f);
                 setPage(0);
               }}
               showPrivateFilter={false}

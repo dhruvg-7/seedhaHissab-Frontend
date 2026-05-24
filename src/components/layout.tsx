@@ -1,8 +1,10 @@
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, LogOut, LayoutGrid, FolderKanban, User, Bell } from 'lucide-react';
+import { Moon, Sun, LogOut, FolderKanban, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme-provider';
 import { removeToken } from '@/lib/auth';
+import { DemoBanner } from '@/components/demo-banner';
+import { GlobalSearchBar } from '@/components/search/global-search-bar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,11 +26,12 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <DemoBanner />
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <Link to="/projects" className="flex items-center gap-2 font-semibold text-foreground hover:opacity-80 transition-opacity">
-            <LayoutGrid className="w-5 h-5 text-primary" />
-            <span className="text-lg tracking-tight">SeedhaHisaab</span>
+            <img src="/logo.png" alt="SeedhaHissab" className="w-6 h-6 object-contain" />
+            <span className="text-lg tracking-tight">SeedhaHissab</span>
           </Link>
           <nav className="flex items-center gap-1 ml-2">
             <Link
@@ -68,6 +71,7 @@ export function Layout({ children }: LayoutProps) {
               <span className="hidden sm:inline">Reminders</span>
             </Link>
           </nav>
+          <GlobalSearchBar />
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { AuthGuard } from '@/components/auth-guard';
 import { Layout } from '@/components/layout';
 import { ReminderCard } from '@/components/reminders/reminder-card';
@@ -19,6 +20,7 @@ import {
   useTodayReminders,
   useUpcomingReminders,
 } from '@/hooks/use-reminders';
+import { FilterChipGroup, type FilterChip } from '@/components/filters/filter-chip-group';
 import type { Reminder } from '@/lib/types';
 
 interface SectionProps {
@@ -71,6 +73,8 @@ export default function RemindersPage() {
 
   const [completedPage, setCompletedPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [dueAfter, setDueAfter] = useState<string | undefined>(undefined);
+  const [dueBefore, setDueBefore] = useState<string | undefined>(undefined);
 
   const today = useTodayReminders();
   const overdue = useOverdueReminders();
@@ -80,6 +84,8 @@ export default function RemindersPage() {
     status: 'COMPLETED',
     page: completedPage,
     limit: 10,
+    dueAfter,
+    dueBefore,
   });
 
   const completeMutation = useCompleteReminder();
@@ -131,13 +137,43 @@ export default function RemindersPage() {
           </div>
 
           <Card>
-            <CardContent className="py-3 px-4">
+            <CardContent className="py-3 px-4 space-y-2">
               <Input
                 data-testid="input-reminders-search"
                 placeholder="Search by title, note, or counterparty…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Due from</Label>
+                  <input
+                    type="date"
+                    className="h-7 px-2 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    value={dueAfter ?? ''}
+                    onChange={(e) => { setDueAfter(e.target.value || undefined); setCompletedPage(0); }}
+                    data-testid="input-reminders-due-after"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">to</Label>
+                  <input
+                    type="date"
+                    className="h-7 px-2 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    value={dueBefore ?? ''}
+                    onChange={(e) => { setDueBefore(e.target.value || undefined); setCompletedPage(0); }}
+                    data-testid="input-reminders-due-before"
+                  />
+                </div>
+                {(dueAfter || dueBefore) && (
+                  <FilterChipGroup
+                    chips={[
+                      ...(dueAfter ? [{ key: 'after', label: `From ${dueAfter}`, onRemove: () => setDueAfter(undefined) }] : []),
+                      ...(dueBefore ? [{ key: 'before', label: `To ${dueBefore}`, onRemove: () => setDueBefore(undefined) }] : []),
+                    ] satisfies import('@/components/filters/filter-chip-group').FilterChip[]}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
 

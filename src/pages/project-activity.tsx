@@ -4,11 +4,15 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActivityFeed } from '@/components/activity/activity-feed';
-import { ActivityFilter } from '@/components/activity/activity-filter';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api';
 import { useProjectActivity } from '@/hooks/use-activity';
-import type { ActivityType, ActivityVisibilityScope, ActivityItem } from '@/lib/activity-types';
+import type { ActivityItem } from '@/lib/activity-types';
+import {
+  ActivityFilterPanel,
+  ACTIVITY_FILTERS_DEFAULT,
+  type ActivityFilters,
+} from '@/components/filters/activity-filter-panel';
 
 interface ProjectLite {
   id: string;
@@ -21,8 +25,7 @@ export default function ProjectActivityPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
-  const [scope, setScope] = useState<ActivityVisibilityScope | 'ALL'>('ALL');
-  const [type, setType] = useState<ActivityType | 'ALL'>('ALL');
+  const [filters, setFilters] = useState<ActivityFilters>(ACTIVITY_FILTERS_DEFAULT);
   const [page, setPage] = useState(0);
   const [accumulated, setAccumulated] = useState<ActivityItem[]>([]);
 
@@ -35,12 +38,13 @@ export default function ProjectActivityPage() {
   const { data, isFetching } = useProjectActivity(projectId, {
     page,
     limit: PAGE_LIMIT,
-    type: type === 'ALL' ? undefined : type,
-    visibilityScope: scope === 'ALL' ? undefined : scope,
+    type: filters.type === 'ALL' ? undefined : filters.type,
+    visibilityScope: filters.visibilityScope === 'ALL' ? undefined : filters.visibilityScope,
+    createdAfter: filters.createdAfter,
+    createdBefore: filters.createdBefore,
   });
 
-  // Reset accumulator whenever filter changes (page resets to 0).
-  const filterKey = `${scope}|${type}`;
+  const filterKey = `${filters.type}|${filters.visibilityScope}|${filters.createdAfter ?? ''}|${filters.createdBefore ?? ''}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
   if (lastFilterKey !== filterKey) {
     setLastFilterKey(filterKey);
@@ -48,8 +52,6 @@ export default function ProjectActivityPage() {
     setAccumulated([]);
   }
 
-  // Append new pages as they arrive (dedupe on activityKey — Q: why? because
-  // boundaries between pages can shift when new events arrive between fetches).
   if (data && data.page === page) {
     const seen = new Set(accumulated.map((i) => i.activityKey));
     const newOnes = data.items.filter((i) => !seen.has(i.activityKey));
@@ -81,17 +83,12 @@ export default function ProjectActivityPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <CardTitle className="text-base">What happened</CardTitle>
-            <ActivityFilter
-              scope={scope}
-              onScopeChange={(s) => {
-                setScope(s);
-                setPage(0);
-              }}
-              type={type}
-              onTypeChange={(t) => {
-                setType(t);
+            <ActivityFilterPanel
+              filters={filters}
+              onChange={(f) => {
+                setFilters(f);
                 setPage(0);
               }}
             />

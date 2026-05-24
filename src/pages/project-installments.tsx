@@ -19,6 +19,10 @@ import { useInstallments, useInstallmentSummary } from '@/hooks/use-installments
 import { apiGet } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import type { InstallmentDerivedStatus, Project } from '@/lib/types';
+import {
+  InstallmentFilterPanel,
+  type InstallmentFilters,
+} from '@/components/filters/installment-filter-panel';
 
 const STATUS_OPTIONS: { value: 'ALL' | InstallmentDerivedStatus; label: string }[] = [
   { value: 'ALL', label: 'All' },
@@ -40,6 +44,7 @@ export default function ProjectInstallmentsPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'ALL' | InstallmentDerivedStatus>('ALL');
+  const [instFilters, setInstFilters] = useState<InstallmentFilters>({});
   const [formOpen, setFormOpen] = useState(false);
 
   const { data: project } = useQuery({
@@ -52,6 +57,7 @@ export default function ProjectInstallmentsPage() {
   const listQuery = useInstallments(projectId, {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     limit: 50,
+    ...instFilters,
   });
 
   const items = useMemo(() => listQuery.data?.data ?? [], [listQuery.data]);
@@ -136,29 +142,29 @@ export default function ProjectInstallmentsPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v as 'ALL' | InstallmentDerivedStatus)}
-            >
-              <SelectTrigger
-                className="w-44"
-                data-testid="select-status-filter"
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as 'ALL' | InstallmentDerivedStatus)}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((o) => (
-                  <SelectItem
-                    key={o.value}
-                    value={o.value}
-                    data-testid={`option-status-${o.value}`}
-                  >
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger className="w-44" data-testid="select-status-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((o) => (
+                    <SelectItem
+                      key={o.value}
+                      value={o.value}
+                      data-testid={`option-status-${o.value}`}
+                    >
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <InstallmentFilterPanel filters={instFilters} onChange={setInstFilters} />
           </div>
 
           {listQuery.isLoading ? (

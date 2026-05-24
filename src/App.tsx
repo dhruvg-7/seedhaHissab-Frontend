@@ -20,7 +20,8 @@ import ProjectActivityPage from '@/pages/project-activity';
 import ProjectMembersPage from '@/pages/project-members';
 import PersonalActivityPage from '@/pages/personal-activity';
 import CounterpartyActivityPage from '@/pages/counterparty-activity';
-import { isAuthenticated } from '@/lib/auth';
+import LandingPage from '@/pages/landing';
+import DemoPage from '@/pages/demo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,13 +34,14 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="seedhahisaab-theme">
+    <ThemeProvider defaultTheme="light" storageKey="seedhahissab-theme">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter
           basename={import.meta.env.BASE_URL.replace(/\/$/, '')}
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
           <Routes>
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
@@ -59,7 +61,7 @@ function App() {
             <Route path="/personal/counterparties" element={<PersonalCounterpartiesPage />} />
             <Route path="/personal/counterparties/:name" element={<PersonalCounterpartyLedgerPage />} />
             <Route path="/reminders" element={<RemindersPage />} />
-            <Route path="/" element={<Navigate to={isAuthenticated() ? '/projects' : '/login'} replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

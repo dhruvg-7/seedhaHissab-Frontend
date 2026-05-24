@@ -23,6 +23,10 @@ import { apiGet, apiPatch } from '@/lib/api';
 import type { Transaction, PagedResponse } from '@/lib/types';
 import { TRANSACTION_TYPE_LABELS } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  TransactionFilterPanel,
+  type TransactionFilters,
+} from '@/components/filters/transaction-filter-panel';
 
 interface Props {
   projectId: string;
@@ -43,17 +47,30 @@ export function TransactionList({ projectId }: Props) {
 
   const [includeOmitted, setIncludeOmitted] = useState(false);
   const [page, setPage] = useState(0);
+  const [filters, setFilters] = useState<TransactionFilters>({});
   const [historyTx, setHistoryTx] = useState<Transaction | null>(null);
   const [omitTarget, setOmitTarget] = useState<Transaction | null>(null);
   const limit = 20;
 
+  const handleFiltersChange = (f: TransactionFilters) => {
+    setFilters(f);
+    setPage(0);
+  };
+
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', projectId, includeOmitted, page],
-    queryFn: () => apiGet<PagedResponse<Transaction>>(`/projects/${projectId}/transactions`, {
-      includeOmitted,
-      page,
-      limit,
-    }),
+    queryKey: ['transactions', projectId, includeOmitted, page, filters],
+    queryFn: () =>
+      apiGet<PagedResponse<Transaction>>(`/projects/${projectId}/transactions`, {
+        includeOmitted,
+        page,
+        limit,
+        ...(filters.type ? { type: filters.type } : {}),
+        ...(filters.createdAfter ? { createdAfter: filters.createdAfter } : {}),
+        ...(filters.createdBefore ? { createdBefore: filters.createdBefore } : {}),
+        ...(filters.minAmount != null ? { minAmount: filters.minAmount } : {}),
+        ...(filters.maxAmount != null ? { maxAmount: filters.maxAmount } : {}),
+        ...(filters.counterpartyName ? { counterpartyName: filters.counterpartyName } : {}),
+      }),
     enabled: !!projectId,
   });
 
@@ -72,7 +89,9 @@ export function TransactionList({ projectId }: Props) {
       setOmitTarget(null);
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to omit transaction';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to omit transaction';
       toast({ title: 'Error', description: msg, variant: 'destructive' });
     },
   });
@@ -88,23 +107,38 @@ export function TransactionList({ projectId }: Props) {
             id="include-omitted"
             data-testid="switch-include-omitted"
             checked={includeOmitted}
-            onCheckedChange={val => { setIncludeOmitted(val); setPage(0); }}
+            onCheckedChange={(val) => {
+              setIncludeOmitted(val);
+              setPage(0);
+            }}
           />
-          <Label htmlFor="include-omitted" className="text-sm cursor-pointer">Show omitted</Label>
+          <Label htmlFor="include-omitted" className="text-sm cursor-pointer">
+            Show omitted
+          </Label>
         </div>
         {data && (
-          <p className="text-xs text-muted-foreground">{data.total} transaction{data.total !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">
+            {data.total} transaction{data.total !== 1 ? 's' : ''}
+          </p>
         )}
       </div>
 
+      <TransactionFilterPanel filters={filters} onChange={handleFiltersChange} />
+
       {isLoading ? (
         <div className="space-y-2">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16" />)}
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-16" />
+          ))}
         </div>
       ) : transactions.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="font-medium">No transactions yet</p>
-          <p className="text-sm mt-1">Add your first transaction using the button above</p>
+          <p className="font-medium">No transactions found</p>
+          <p className="text-sm mt-1">
+            {Object.values(filters).some(Boolean)
+              ? 'Try adjusting your filters'
+              : 'Add your first transaction using the button above'}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -133,7 +167,11 @@ export function TransactionList({ projectId }: Props) {
                         {TRANSACTION_TYPE_LABELS[tx.type]}
                       </Badge>
                       {tx.status === 'OMITTED' && (
-                        <Badge variant="destructive" className="text-xs" data-testid={`badge-tx-omitted-${tx.id}`}>
+                        <Badge
+                          variant="destructive"
+                          className="text-xs"
+                          data-testid={`badge-tx-omitted-${tx.id}`}
+                        >
                           Omitted
                         </Badge>
                       )}
@@ -145,11 +183,16 @@ export function TransactionList({ projectId }: Props) {
                       >
                         {formatAmount(tx.amount)}
                       </span>
-                      <span className="text-xs text-muted-foreground" data-testid={`text-tx-date-${tx.id}`}>
+                      <span
+                        className="text-xs text-muted-foreground"
+                        data-testid={`text-tx-date-${tx.id}`}
+                      >
                         {formatDate(tx.transactionDate)}
                       </span>
                       {tx.purpose && (
-                        <span className="text-xs text-muted-foreground truncate">{tx.purpose}</span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {tx.purpose}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -171,7 +214,11 @@ export function TransactionList({ projectId }: Props) {
                           size="icon"
                           className="h-7 w-7"
                           data-testid={`button-tx-edit-${tx.id}`}
-                          onClick={() => navigate(`/projects/${projectId}/transactions/${tx.rootTransactionId}/edit`)}
+                          onClick={() =>
+                            navigate(
+                              `/projects/${projectId}/transactions/${tx.rootTransactionId}/edit`,
+                            )
+                          }
                           title="Edit transaction"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -203,58 +250,79 @@ export function TransactionList({ projectId }: Props) {
             size="sm"
             data-testid="button-prev-page"
             disabled={page === 0}
-            onClick={() => setPage(p => Math.max(0, p - 1))}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
             <ChevronLeft className="w-4 h-4 mr-1" /> Previous
           </Button>
-          <span className="text-sm text-muted-foreground">Page {page + 1} of {totalPages}</span>
+          <span className="text-sm text-muted-foreground">
+            Page {page + 1} of {totalPages}
+          </span>
           <Button
             variant="outline"
             size="sm"
             data-testid="button-next-page"
             disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => setPage((p) => p + 1)}
           >
             Next <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       )}
 
-      <Dialog open={!!historyTx} onOpenChange={open => !open && setHistoryTx(null)}>
+      <Dialog open={!!historyTx} onOpenChange={(open) => !open && setHistoryTx(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Transaction History</DialogTitle>
           </DialogHeader>
           {historyLoading ? (
             <div className="space-y-2">
-              {[1, 2].map(i => <Skeleton key={i} className="h-14" />)}
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-14" />
+              ))}
             </div>
           ) : history && history.length > 0 ? (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {(() => {
                 const sorted = [...history].sort((a, b) => b.version - a.version);
                 const maxVersion = sorted[0]?.version ?? 0;
-                return sorted.map(ver => (
+                return sorted.map((ver) => (
                   <div
                     key={ver.id}
-                    className={`rounded-md border p-3 text-sm ${ver.version === maxVersion ? 'border-primary bg-primary/5' : ''}`}
+                    className={`rounded-md border p-3 text-sm ${
+                      ver.version === maxVersion ? 'border-primary bg-primary/5' : ''
+                    }`}
                     data-testid={`row-tx-history-${ver.id}`}
                   >
                     <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">Version {ver.version}</span>
                         {ver.version === maxVersion && (
-                          <Badge className="text-xs" data-testid={`badge-latest-version-${ver.id}`}>Latest</Badge>
+                          <Badge
+                            className="text-xs"
+                            data-testid={`badge-latest-version-${ver.id}`}
+                          >
+                            Latest
+                          </Badge>
                         )}
                       </div>
-                      <Badge variant={ver.status === 'OMITTED' ? 'destructive' : 'secondary'} className="text-xs">
+                      <Badge
+                        variant={ver.status === 'OMITTED' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
                         {ver.status}
                       </Badge>
                     </div>
                     <div className="text-muted-foreground space-y-0.5">
-                      <p>{TRANSACTION_TYPE_LABELS[ver.type]} — {formatAmount(ver.amount)}</p>
-                      <p>{formatDate(ver.transactionDate)}{ver.purpose ? ` — ${ver.purpose}` : ''}</p>
-                      <p className="text-xs">{new Date(ver.createdAt).toLocaleString('en-IN')}</p>
+                      <p>
+                        {TRANSACTION_TYPE_LABELS[ver.type]} — {formatAmount(ver.amount)}
+                      </p>
+                      <p>
+                        {formatDate(ver.transactionDate)}
+                        {ver.purpose ? ` — ${ver.purpose}` : ''}
+                      </p>
+                      <p className="text-xs">
+                        {new Date(ver.createdAt).toLocaleString('en-IN')}
+                      </p>
                       {ver.createdBy && (
                         <p className="text-xs">Created by: {ver.createdBy}</p>
                       )}
@@ -269,12 +337,16 @@ export function TransactionList({ projectId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!omitTarget} onOpenChange={open => !open && setOmitTarget(null)}>
+      <AlertDialog
+        open={!!omitTarget}
+        onOpenChange={(open) => !open && setOmitTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Omit transaction?</AlertDialogTitle>
             <AlertDialogDescription>
-              This transaction will be marked as omitted and excluded from calculations. This action cannot be undone.
+              This transaction will be marked as omitted and excluded from calculations. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -11,8 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiPost } from '@/lib/api';
 import { setToken } from '@/lib/auth';
 import type { AuthResponse } from '@/lib/types';
-import { LayoutGrid } from 'lucide-react';
-
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -50,8 +48,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <LayoutGrid className="w-7 h-7 text-primary" />
-          <span className="text-2xl font-semibold tracking-tight">SeedhaHisaab</span>
+          <img src="/logo.png" alt="SeedhaHissab" className="w-8 h-8 object-contain" />
+          <span className="text-2xl font-semibold tracking-tight">SeedhaHissab</span>
         </div>
         <Card>
           <CardHeader className="pb-4">
