@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme-provider';
 import { removeToken } from '@/lib/auth';
 import { DemoBanner } from '@/components/demo-banner';
+import { GlobalSearchBar } from '@/components/search/global-search-bar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -70,6 +71,7 @@ export function Layout({ children }: LayoutProps) {
               <span className="hidden sm:inline">Reminders</span>
             </Link>
           </nav>
+          <GlobalSearchBar />
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { isAuthenticated } from '@/lib/auth';
 import { useTheme } from '@/components/theme-provider';
-import { Moon, Sun, LayoutGrid, ArrowRight, Check, X } from 'lucide-react';
+import { Moon, Sun, ArrowRight, Check, Play } from 'lucide-react';
 
 const appPath = isAuthenticated() ? '/projects' : '/login';
 
@@ -93,7 +93,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="w-5 h-5 text-primary" />
+            <img src="/logo.png" alt="SeedhaHissab" className="w-6 h-6 object-contain" />
             <span className="font-semibold text-base tracking-tight">SeedhaHissab</span>
           </div>
           <div className="flex items-center gap-3">
@@ -105,10 +105,17 @@ export default function LandingPage() {
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <Link
+              to="/demo"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted/50 transition-colors text-foreground"
+            >
+              <Play className="w-3 h-3 fill-current" />
+              Try Demo
+            </Link>
+            <Link
               to={appPath}
               className="text-sm font-medium text-primary hover:underline underline-offset-4 transition-colors"
             >
-              Open App
+              Sign In
             </Link>
           </div>
         </div>
@@ -141,19 +148,21 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to={appPath}
+              to="/demo"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity shadow-md"
             >
-              Start Using SeedhaHissab
-              <ArrowRight className="w-4 h-4" />
+              <Play className="w-4 h-4 fill-current" />
+              Try Demo — No Sign Up
             </Link>
-            <a
-              href="#how-it-works"
+            <Link
+              to={appPath}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-medium text-sm hover:bg-muted/50 transition-colors"
             >
-              See How It Works
-            </a>
+              Create Account
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
+          <p className="text-xs text-muted-foreground mt-3">Demo loads instantly with real sample data — no account needed</p>
         </div>
 
         {/* Gradient fade bottom */}
@@ -333,6 +342,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── DEMO CTA ── */}
+      <section className="py-20 px-4 border-t border-border bg-primary/5">
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl border border-primary/20 bg-card p-8 sm:p-12 text-center shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Live demo — real data, real flows
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-4">
+              See it before you commit to anything.
+            </h2>
+            <p className="text-muted-foreground text-base max-w-xl mx-auto mb-8 leading-relaxed">
+              The demo loads a real construction project — vendor ledgers, partner settlements, overdue installments, the works. Explore freely. Reset whenever you want.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link
+                to="/demo"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:opacity-90 transition-opacity shadow-md w-full sm:w-auto"
+              >
+                <Play className="w-5 h-5 fill-current" />
+                Open Live Demo
+              </Link>
+              <Link
+                to={appPath}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-border text-foreground font-medium text-base hover:bg-muted/50 transition-colors w-full sm:w-auto"
+              >
+                Create Free Account
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+            <div className="flex flex-wrap justify-center gap-6 mt-8 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> No signup required</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Full feature access</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Reset data anytime</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Shared demo account</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FINAL CTA ── */}
       <section className="py-24 px-4 border-t border-border">
         <div className="max-w-3xl mx-auto text-center">
@@ -342,13 +391,22 @@ export default function LandingPage() {
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">
             Projects, people, payments — all in one place. No setup fee. No team of 10 required.
           </p>
-          <Link
-            to={appPath}
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:opacity-90 transition-opacity shadow-lg"
-          >
-            Open SeedhaHissab
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/demo"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-border text-foreground font-semibold text-base hover:bg-muted/50 transition-colors"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              Try Demo First
+            </Link>
+            <Link
+              to={appPath}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:opacity-90 transition-opacity shadow-lg"
+            >
+              Open SeedhaHissab
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
           <p className="text-muted-foreground text-xs mt-4">Free to start. No credit card.</p>
         </div>
       </section>
@@ -357,13 +415,18 @@ export default function LandingPage() {
       <footer className="border-t border-border py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4 text-primary" />
+            <img src="/logo.png" alt="SeedhaHissab" className="w-5 h-5 object-contain" />
             <span className="font-medium text-foreground">SeedhaHissab</span>
           </div>
           <p>Built after living through messy accounting.</p>
-          <Link to={appPath} className="hover:text-foreground transition-colors font-medium">
-            Open App →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/demo" className="hover:text-foreground transition-colors">
+              Try Demo
+            </Link>
+            <Link to={appPath} className="hover:text-foreground transition-colors font-medium">
+              Open App →
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
