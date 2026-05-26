@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   Select,
   SelectContent,
@@ -22,9 +23,10 @@ import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
 import { AuthGuard } from '@/components/auth-guard';
 import { Layout } from '@/components/layout';
-import type { Partner, Vendor, Transaction } from '@/lib/types';
+import type { Partner, ProjectMember, Vendor, Transaction } from '@/lib/types';
 import { TRANSACTION_TYPE_LABELS } from '@/lib/types';
 import { useInstallments } from '@/hooks/use-installments';
+import { useProjectMembers } from '@/hooks/use-project-members';
 
 const PROJECT_TYPES = ['EXPENSE', 'INCOME', 'VENDOR_SUPPLY', 'VENDOR_PAYMENT', 'PARTNER_SETTLEMENT', 'PROFIT_WITHDRAWAL'] as const;
 type ProjectTransactionType = typeof PROJECT_TYPES[number];
@@ -37,6 +39,8 @@ const schema = z.object({
   vendorId: z.string().optional(),
   partnerId: z.string().optional(),
   paidByPartnerId: z.string().optional(),
+  purchasedByMemberId: z.string().optional(),
+  receivedByMemberId: z.string().optional(),
   linkedInstallmentId: z.string().optional(),
 }).superRefine((data, ctx) => {
   if ((data.type === 'VENDOR_SUPPLY' || data.type === 'VENDOR_PAYMENT') && !data.vendorId) {
@@ -47,6 +51,12 @@ const schema = z.object({
   }
   if (data.type === 'EXPENSE' && !data.paidByPartnerId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Paid-by partner is required for expenses', path: ['paidByPartnerId'] });
+  }
+  if ((data.type === 'EXPENSE' || data.type === 'VENDOR_SUPPLY' || data.type === 'VENDOR_PAYMENT') && !data.purchasedByMemberId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Purchased by is required for project expenses and vendor transactions', path: ['purchasedByMemberId'] });
+  }
+  if (data.type === 'INCOME' && !data.receivedByMemberId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Received by is required for income transactions', path: ['receivedByMemberId'] });
   }
 });
 
@@ -71,6 +81,8 @@ export default function TransactionFormPage() {
       vendorId: '',
       partnerId: '',
       paidByPartnerId: '',
+      purchasedByMemberId: '',
+      receivedByMemberId: '',
       linkedInstallmentId: prefillInstallmentId ?? '',
     },
   });
@@ -106,6 +118,15 @@ export default function TransactionFormPage() {
     ...(overdueInstallments.data?.data ?? []),
   ];
 
+  const { data: activeMembers } = useProjectMembers(projectId);
+  const memberOptions = (activeMembers ?? [])
+    .filter((member) => !member.archivedAt)
+    .map((member: ProjectMember) => ({
+      value: member.id,
+      label: member.userName ?? member.userEmail ?? 'Unknown member',
+      description: member.userEmail ?? undefined,
+    }));
+
   const { data: partners } = useQuery({
     queryKey: ['partners', projectId],
     queryFn: () => apiGet<Partner[]>(`/projects/${projectId}/partners`),
@@ -139,6 +160,8 @@ export default function TransactionFormPage() {
         vendorId: existingTx.vendorId ?? '',
         partnerId: existingTx.partnerId ?? '',
         paidByPartnerId: existingTx.paidByPartnerId ?? '',
+        purchasedByMemberId: existingTx.purchasedByMemberId ?? '',
+        receivedByMemberId: existingTx.receivedByMemberId ?? '',
         linkedInstallmentId: existingTx.linkedInstallmentId ?? '',
       });
     }
@@ -175,11 +198,17 @@ export default function TransactionFormPage() {
     if (data.type === 'EXPENSE') {
       if (data.paidByPartnerId) payload.paidByPartnerId = data.paidByPartnerId;
     }
+    if (data.type === 'EXPENSE' || data.type === 'VENDOR_SUPPLY' || data.type === 'VENDOR_PAYMENT') {
+      if (data.purchasedByMemberId) payload.purchasedByMemberId = data.purchasedByMemberId;
+    }
     if (data.type === 'VENDOR_SUPPLY' || data.type === 'VENDOR_PAYMENT') {
       if (data.vendorId) payload.vendorId = data.vendorId;
     }
     if (data.type === 'PARTNER_SETTLEMENT' || data.type === 'PROFIT_WITHDRAWAL') {
       if (data.partnerId) payload.partnerId = data.partnerId;
+    }
+    if (data.type === 'INCOME' && data.receivedByMemberId) {
+      payload.receivedByMemberId = data.receivedByMemberId;
     }
     if (data.type === 'INCOME' && data.linkedInstallmentId) {
       payload.linkedInstallmentId = data.linkedInstallmentId;
@@ -191,6 +220,8 @@ export default function TransactionFormPage() {
   const needsVendor = selectedType === 'VENDOR_SUPPLY' || selectedType === 'VENDOR_PAYMENT';
   const needsPartner = selectedType === 'PARTNER_SETTLEMENT' || selectedType === 'PROFIT_WITHDRAWAL';
   const needsPaidBy = selectedType === 'EXPENSE';
+  const needsPurchasedBy = selectedType === 'EXPENSE' || selectedType === 'VENDOR_SUPPLY' || selectedType === 'VENDOR_PAYMENT';
+  const needsReceivedBy = selectedType === 'INCOME';
 
   return (
     <AuthGuard>
@@ -283,6 +314,46 @@ export default function TransactionFormPage() {
                       </Select>
                       {form.formState.errors.paidByPartnerId && (
                         <p className="text-xs text-destructive">{form.formState.errors.paidByPartnerId.message}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {needsPurchasedBy && (
+                    <div className="space-y-1.5">
+                      <Label>Purchased By / Responsible By</Label>
+                      <SearchableSelect
+                        value={form.watch('purchasedByMemberId')}
+                        onValueChange={(val) => {
+                          form.setValue('purchasedByMemberId', val);
+                          form.trigger('purchasedByMemberId');
+                        }}
+                        options={memberOptions}
+                        placeholder="Search project members"
+                        searchPlaceholder="Search by name or email"
+                        emptyText="No matching members"
+                      />
+                      {form.formState.errors.purchasedByMemberId && (
+                        <p className="text-xs text-destructive">{form.formState.errors.purchasedByMemberId.message}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {needsReceivedBy && (
+                    <div className="space-y-1.5">
+                      <Label>Received By</Label>
+                      <SearchableSelect
+                        value={form.watch('receivedByMemberId')}
+                        onValueChange={(val) => {
+                          form.setValue('receivedByMemberId', val);
+                          form.trigger('receivedByMemberId');
+                        }}
+                        options={memberOptions}
+                        placeholder="Search project members"
+                        searchPlaceholder="Search by name or email"
+                        emptyText="No matching members"
+                      />
+                      {form.formState.errors.receivedByMemberId && (
+                        <p className="text-xs text-destructive">{form.formState.errors.receivedByMemberId.message}</p>
                       )}
                     </div>
                   )}

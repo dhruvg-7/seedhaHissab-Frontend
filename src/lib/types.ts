@@ -20,8 +20,12 @@ export interface Partner {
 
 export interface Vendor {
   id: string;
-  projectId: string;
   name: string;
+  ownerUserId?: string;
+  projectId?: string;
+  contactInfo?: string;
+  phoneNumber?: string;
+  about?: string;
 }
 
 export type TransactionType =
@@ -57,9 +61,12 @@ export interface Transaction {
   vendorId?: string;
   partnerId?: string;
   paidByPartnerId?: string;
+  purchasedByMemberId?: string;
+  receivedByMemberId?: string;
   /** Set ONLY when type='INCOME' and an installment was attached. */
   linkedInstallmentId?: string;
   ownerUserId?: string;
+  counterpartyId?: string;
   counterpartyName?: string;
   counterpartyUserId?: string;
   purpose?: string;
@@ -88,6 +95,22 @@ export interface CounterpartySummary {
   totalReceived: number;
   netBalance: number;
   direction: CounterpartyDirection;
+}
+
+export interface Counterparty {
+  id: string;
+  createdByUserId: string;
+  name: string;
+  phoneNumber?: string;
+  about?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CounterpartyRequest {
+  name: string;
+  phoneNumber?: string;
+  about?: string;
 }
 
 export type ReminderStatus = 'PENDING' | 'COMPLETED' | 'SNOOZED' | 'ARCHIVED';
@@ -148,6 +171,8 @@ export interface ProjectSummaryResponse {
 export interface VendorLedgerResponse {
   vendorId: string;
   vendorName: string;
+  phoneNumber?: string;
+  about?: string;
   projectId: string;
   totalSupply: number;
   totalPaid: number;
