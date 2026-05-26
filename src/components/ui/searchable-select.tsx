@@ -113,15 +113,6 @@ export function SearchableSelect({
 
       {open && !disabled && (
         <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
-          <div className="border-b px-2 py-2">
-            <Input
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder={searchPlaceholder}
-              autoFocus
-              className="h-8"
-            />
-          </div>
           <div className="max-h-60 overflow-y-auto p-1">
             {filtered.length > 0 ? (
               filtered.map(option => {
