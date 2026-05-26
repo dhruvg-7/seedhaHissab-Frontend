@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, ArrowLeft, TrendingUp, TrendingDown, DollarSign, Users, Wallet, AlertTriangle, Lock, Activity, UserCog } from 'lucide-react';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost } from '@/lib/api';
 import { AuthGuard } from '@/components/auth-guard';
@@ -39,7 +40,11 @@ export default function ProjectDashboardPage() {
   const [installmentDialogOpen, setInstallmentDialogOpen] = useState(false);
   const [partnerName, setPartnerName] = useState('');
   const [partnerShare, setPartnerShare] = useState('');
+  const [vendorSearch, setVendorSearch] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [vendorPhone, setVendorPhone] = useState('');
+  const [vendorAbout, setVendorAbout] = useState('');
+  const [debouncedVendorSearch, setDebouncedVendorSearch] = useState('');
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -65,6 +70,17 @@ export default function ProjectDashboardPage() {
     enabled: !!projectId,
   });
 
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedVendorSearch(vendorSearch.trim()), 250);
+    return () => window.clearTimeout(handle);
+  }, [vendorSearch]);
+
+  const { data: vendorMatches, isFetching: vendorSearchLoading } = useQuery({
+    queryKey: ['vendor-search', debouncedVendorSearch],
+    queryFn: () => apiGet<Vendor[]>('/vendors/search', { q: debouncedVendorSearch || undefined }),
+    enabled: vendorDialogOpen,
+  });
+
   const { data: installmentSummary } = useInstallmentSummary(projectId);
 
   const addPartnerMutation = useMutation({
@@ -84,16 +100,38 @@ export default function ProjectDashboardPage() {
   });
 
   const addVendorMutation = useMutation({
-    mutationFn: (data: { name: string; projectId: string }) =>
-      apiPost<Vendor>('/vendors', data),
+    mutationFn: (data: { name: string; phoneNumber?: string; about?: string }) =>
+      apiPost<Vendor>(`/projects/${projectId}/vendors`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-search'] });
       setVendorDialogOpen(false);
       setVendorName('');
+      setVendorPhone('');
+      setVendorAbout('');
+      setVendorSearch('');
       toast({ title: 'Vendor added' });
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to add vendor';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    },
+  });
+
+  const attachVendorMutation = useMutation({
+    mutationFn: (vendorId: string) => apiPost<Vendor>(`/projects/${projectId}/vendors/${vendorId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendors', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-search'] });
+      setVendorDialogOpen(false);
+      setVendorSearch('');
+      setVendorName('');
+      setVendorPhone('');
+      setVendorAbout('');
+      toast({ title: 'Vendor attached' });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to attach vendor';
       toast({ title: 'Error', description: msg, variant: 'destructive' });
     },
   });
@@ -407,26 +445,96 @@ export default function ProjectDashboardPage() {
         <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Vendor</DialogTitle>
+              <DialogTitle>Attach or Add Vendor</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div className="space-y-1.5">
-                <Label>Vendor name</Label>
+                <Label>Search existing vendors</Label>
                 <Input
-                  data-testid="input-vendor-name"
-                  value={vendorName}
-                  onChange={e => setVendorName(e.target.value)}
-                  placeholder="e.g. Steel Supplier Co."
+                  data-testid="input-vendor-search"
+                  value={vendorSearch}
+                  onChange={e => setVendorSearch(e.target.value)}
+                  placeholder="Search by vendor name"
                 />
               </div>
-              <Button
-                className="w-full"
-                data-testid="button-save-vendor"
-                disabled={addVendorMutation.isPending || !vendorName.trim()}
-                onClick={() => addVendorMutation.mutate({ name: vendorName.trim(), projectId: projectId! })}
-              >
-                {addVendorMutation.isPending ? 'Adding...' : 'Add Vendor'}
-              </Button>
+
+              {vendorSearch.trim() && (
+                <div className="space-y-2 rounded-md border p-3">
+                  {vendorSearchLoading ? (
+                    <p className="text-sm text-muted-foreground">Searching vendors...</p>
+                  ) : (vendorMatches ?? []).length > 0 ? (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {vendorMatches?.map((vendor) => (
+                        <div key={vendor.id} className="flex items-start justify-between gap-3 rounded-md border bg-background px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{vendor.name}</p>
+                            {(vendor.phoneNumber || vendor.about) && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {vendor.phoneNumber && vendor.phoneNumber}
+                                {vendor.phoneNumber && vendor.about && ' · '}
+                                {vendor.about && vendor.about}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={attachVendorMutation.isPending}
+                            onClick={() => attachVendorMutation.mutate(vendor.id)}
+                          >
+                            Attach
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No existing vendor matches. Add it below.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3 rounded-md border p-3 bg-muted/20">
+                <div className="space-y-1.5">
+                  <Label>Add new vendor</Label>
+                  <Input
+                    data-testid="input-vendor-name"
+                    value={vendorName}
+                    onChange={e => setVendorName(e.target.value)}
+                    placeholder="e.g. Steel Supplier Co."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone number (optional)</Label>
+                  <Input
+                    data-testid="input-vendor-phone"
+                    value={vendorPhone}
+                    onChange={e => setVendorPhone(e.target.value)}
+                    placeholder="98xxxxxxx"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>About / description (optional)</Label>
+                  <Textarea
+                    data-testid="input-vendor-about"
+                    value={vendorAbout}
+                    onChange={e => setVendorAbout(e.target.value)}
+                    placeholder="e.g. Local steel and fabrication supplier"
+                    rows={3}
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  data-testid="button-save-vendor"
+                  disabled={addVendorMutation.isPending || !vendorName.trim()}
+                  onClick={() => addVendorMutation.mutate({
+                    name: vendorName.trim(),
+                    phoneNumber: vendorPhone.trim() || undefined,
+                    about: vendorAbout.trim() || undefined,
+                  })}
+                >
+                  {addVendorMutation.isPending ? 'Saving...' : 'Add Vendor'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
