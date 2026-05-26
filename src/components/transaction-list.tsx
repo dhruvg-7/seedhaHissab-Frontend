@@ -23,6 +23,7 @@ import { apiGet, apiPatch } from '@/lib/api';
 import type { Transaction, PagedResponse } from '@/lib/types';
 import { TRANSACTION_TYPE_LABELS } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useProjectMembers } from '@/hooks/use-project-members';
 import {
   TransactionFilterPanel,
   type TransactionFilters,
@@ -51,6 +52,13 @@ export function TransactionList({ projectId }: Props) {
   const [historyTx, setHistoryTx] = useState<Transaction | null>(null);
   const [omitTarget, setOmitTarget] = useState<Transaction | null>(null);
   const limit = 20;
+
+  const { data: members } = useProjectMembers(projectId, true);
+  const memberNameById = new Map(
+    (members ?? []).map((member) => [member.id, member.userName ?? member.userEmail ?? 'Unknown member']),
+  );
+
+  const memberLabel = (memberId?: string) => (memberId ? memberNameById.get(memberId) ?? 'Unknown member' : null);
 
   const handleFiltersChange = (f: TransactionFilters) => {
     setFilters(f);
@@ -194,6 +202,13 @@ export function TransactionList({ projectId }: Props) {
                           {tx.purpose}
                         </span>
                       )}
+                      {(tx.purchasedByMemberId || tx.receivedByMemberId) && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          {tx.purchasedByMemberId && `Purchased by: ${memberLabel(tx.purchasedByMemberId)}`}
+                          {tx.purchasedByMemberId && tx.receivedByMemberId && ' · '}
+                          {tx.receivedByMemberId && `Received by: ${memberLabel(tx.receivedByMemberId)}`}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
@@ -320,6 +335,13 @@ export function TransactionList({ projectId }: Props) {
                         {formatDate(ver.transactionDate)}
                         {ver.purpose ? ` — ${ver.purpose}` : ''}
                       </p>
+                      {(ver.purchasedByMemberId || ver.receivedByMemberId) && (
+                        <p>
+                          {ver.purchasedByMemberId && `Purchased by: ${memberLabel(ver.purchasedByMemberId)}`}
+                          {ver.purchasedByMemberId && ver.receivedByMemberId && ' · '}
+                          {ver.receivedByMemberId && `Received by: ${memberLabel(ver.receivedByMemberId)}`}
+                        </p>
+                      )}
                       <p className="text-xs">
                         {new Date(ver.createdAt).toLocaleString('en-IN')}
                       </p>

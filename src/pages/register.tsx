@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { setToken } from '@/lib/auth';
+import { setCurrentUserProfile, setToken } from '@/lib/auth';
 import type { AuthResponse } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ export default function RegisterPage() {
     try {
       const response = await apiPost<AuthResponse>('/auth/register', data);
       setToken(response.token);
+      setCurrentUserProfile({ name: response.name ?? null, email: response.email ?? null });
       toast({ title: 'Account created', description: 'Welcome to SeedhaHissab!' });
       navigate('/projects');
     } catch (err: unknown) {
@@ -49,10 +50,10 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8 hover:opacity-80 transition-opacity">
           <img src="/logo.png" alt="SeedhaHissab" className="w-8 h-8 object-contain" />
           <span className="text-2xl font-semibold tracking-tight">SeedhaHissab</span>
-        </div>
+        </Link>
         <Card>
           <CardHeader className="pb-4">
             <CardTitle>Create account</CardTitle>

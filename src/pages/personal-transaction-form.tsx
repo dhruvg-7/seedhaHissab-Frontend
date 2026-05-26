@@ -20,6 +20,7 @@ import {
   type PersonalTransactionType,
   type Transaction,
   type CounterpartyDirection,
+  type Counterparty,
 } from '@/lib/types';
 import {
   POSITIVE_LEDGER_TYPES,
@@ -31,6 +32,7 @@ import { useCounterpartyBalance } from '@/hooks/use-personal-ledger';
 interface FormPayload {
   type: PersonalTransactionType;
   amount: number;
+  counterpartyId?: string;
   counterpartyName?: string;
   purpose?: string;
   transactionDate: string;
@@ -101,7 +103,11 @@ export default function PersonalTransactionFormPage() {
 
   const [type, setType] = useState<PersonalTransactionType>('EXPENSE');
   const [amount, setAmount] = useState('');
+  const [counterpartyId, setCounterpartyId] = useState('');
   const [counterpartyName, setCounterpartyName] = useState('');
+  const [counterpartyPhone, setCounterpartyPhone] = useState('');
+  const [counterpartyAbout, setCounterpartyAbout] = useState('');
+  const [debouncedCounterpartySearch, setDebouncedCounterpartySearch] = useState('');
   const [purpose, setPurpose] = useState('');
   const [transactionDate, setTransactionDate] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -120,14 +126,57 @@ export default function PersonalTransactionFormPage() {
     if (!latest) return;
     setType(latest.type as PersonalTransactionType);
     setAmount(String(latest.amount));
+    setCounterpartyId(latest.counterpartyId ?? '');
     setCounterpartyName(latest.counterpartyName ?? '');
     setPurpose(latest.purpose ?? '');
     setTransactionDate(latest.transactionDate);
   }, [latest]);
 
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedCounterpartySearch(counterpartyName.trim()), 250);
+    return () => window.clearTimeout(handle);
+  }, [counterpartyName]);
+
+  useEffect(() => {
+    if (!counterpartyId && counterpartyName.trim()) {
+      setCounterpartyPhone('');
+      setCounterpartyAbout('');
+    }
+  }, [counterpartyId, counterpartyName]);
+
+  const { data: counterpartyMatches, isFetching: counterpartySearchLoading } = useQuery({
+    queryKey: ['counterparty-search', debouncedCounterpartySearch],
+    queryFn: () => apiGet<Counterparty[]>('/counterparties/search', {
+      q: debouncedCounterpartySearch || undefined,
+    }),
+    enabled: debouncedCounterpartySearch.length > 0,
+  });
+
   const counterpartyRequired = COUNTERPARTY_REQUIRED_TYPES.includes(type);
   const trimmedCp = counterpartyName.trim();
   const helper = counterpartyHelperText(type, counterpartyName);
+
+  const selectCounterparty = (counterparty: Counterparty) => {
+    setCounterpartyId(counterparty.id);
+    setCounterpartyName(counterparty.name);
+    setCounterpartyPhone(counterparty.phoneNumber ?? '');
+    setCounterpartyAbout(counterparty.about ?? '');
+  };
+
+  const createCounterpartyMutation = useMutation({
+    mutationFn: (payload: { name: string; phoneNumber?: string; about?: string }) =>
+      apiPost<Counterparty>('/counterparties', payload),
+    onSuccess: (created) => {
+      selectCounterparty(created);
+      queryClient.invalidateQueries({ queryKey: ['counterparty-search'] });
+      toast({ title: 'Person added' });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || 'Failed to add person';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    },
+  });
 
   // Live projected balance for the entered counterparty.
   const { summary: cpSummary, isLoading: cpLoading } = useCounterpartyBalance(counterpartyName);
@@ -173,7 +222,7 @@ export default function PersonalTransactionFormPage() {
     amount.trim() !== '' &&
     Number(amount) > 0 &&
     !!transactionDate &&
-    (!counterpartyRequired || trimmedCp.length > 0);
+    (!counterpartyRequired || trimmedCp.length > 0 || counterpartyId.length > 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +230,7 @@ export default function PersonalTransactionFormPage() {
     mutation.mutate({
       type,
       amount: Number(amount),
+      counterpartyId: counterpartyId || undefined,
       counterpartyName: trimmedCp || undefined,
       purpose: purpose.trim() || undefined,
       transactionDate,
@@ -246,22 +296,103 @@ export default function PersonalTransactionFormPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="personal-counterparty">
-                      {type === 'INCOME' || type === 'BORROW' || type === 'REPAYMENT_RECEIVED'
-                        ? 'From (counterparty)'
-                        : 'To (counterparty)'}
+                    <Label htmlFor="personal-counterparty-search">
+                      Search existing people
                       <span className="text-muted-foreground font-normal ml-1">
                         {counterpartyRequired ? '(required)' : '(optional)'}
                       </span>
                     </Label>
                     <Input
-                      id="personal-counterparty"
+                      id="personal-counterparty-search"
                       data-testid="input-personal-counterparty"
                       value={counterpartyName}
-                      onChange={e => setCounterpartyName(e.target.value)}
-                      placeholder="e.g. Aman Sharma"
+                      onChange={e => {
+                        setCounterpartyId('');
+                        setCounterpartyName(e.target.value);
+                      }}
+                      placeholder="Search by name, phone, or description"
                       maxLength={255}
                     />
+                    {counterpartySearchLoading && counterpartyName.trim() && (
+                      <p className="text-xs text-muted-foreground italic">Searching people...</p>
+                    )}
+                    {debouncedCounterpartySearch && (counterpartyMatches ?? []).length > 0 && (
+                      <div className="rounded-md border bg-background p-2 space-y-2 max-h-48 overflow-y-auto">
+                        {counterpartyMatches?.map((person) => (
+                          <button
+                            key={person.id}
+                            type="button"
+                            className="w-full text-left rounded-md border border-transparent hover:border-border hover:bg-muted/50 px-3 py-2"
+                            onClick={() => selectCounterparty(person)}
+                          >
+                            <p className="font-medium truncate">{person.name}</p>
+                            {(person.about || person.phoneNumber) && (
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {person.about && person.about}
+                                {person.about && person.phoneNumber && ' · '}
+                                {person.phoneNumber && person.phoneNumber}
+                              </p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {debouncedCounterpartySearch && (counterpartyMatches ?? []).length === 0 && (
+                      <p className="text-xs text-muted-foreground">No saved people match. Add one below.</p>
+                    )}
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="new-counterparty-name">Add new person</Label>
+                        <Input
+                          id="new-counterparty-name"
+                          data-testid="input-personal-counterparty-name"
+                          value={counterpartyId ? counterpartyName : counterpartyName}
+                          onChange={e => {
+                            setCounterpartyId('');
+                            setCounterpartyName(e.target.value);
+                          }}
+                          placeholder="Name"
+                          maxLength={255}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="new-counterparty-phone">Phone number</Label>
+                          <Input
+                            id="new-counterparty-phone"
+                            data-testid="input-personal-counterparty-phone"
+                            value={counterpartyPhone}
+                            onChange={e => setCounterpartyPhone(e.target.value)}
+                            placeholder="98xxxxxxx"
+                            maxLength={255}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="new-counterparty-about">About</Label>
+                          <Input
+                            id="new-counterparty-about"
+                            data-testid="input-personal-counterparty-about"
+                            value={counterpartyAbout}
+                            onChange={e => setCounterpartyAbout(e.target.value)}
+                            placeholder="Electrician"
+                            maxLength={1024}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={createCounterpartyMutation.isPending || !counterpartyName.trim()}
+                        onClick={() => createCounterpartyMutation.mutate({
+                          name: counterpartyName.trim(),
+                          phoneNumber: counterpartyPhone.trim() || undefined,
+                          about: counterpartyAbout.trim() || undefined,
+                        })}
+                      >
+                        {createCounterpartyMutation.isPending ? 'Adding...' : 'Add New Person'}
+                      </Button>
+                    </div>
                     {helper && (
                       <p className="text-xs text-muted-foreground" data-testid="text-personal-helper">
                         {helper}
