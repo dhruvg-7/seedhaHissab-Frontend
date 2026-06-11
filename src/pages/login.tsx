@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { apiPost } from '@/lib/api';
-import { setToken } from '@/lib/auth';
+import { setCurrentUserProfile, setToken } from '@/lib/auth';
 import type { AuthResponse } from '@/lib/types';
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -35,6 +35,7 @@ export default function LoginPage() {
     try {
       const response = await apiPost<AuthResponse>('/auth/login', data);
       setToken(response.token);
+      setCurrentUserProfile({ name: response.name ?? null, email: response.email ?? null });
       navigate('/projects');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Invalid email or password';
@@ -47,10 +48,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8 hover:opacity-80 transition-opacity">
           <img src="/logo.png" alt="SeedhaHissab" className="w-8 h-8 object-contain" />
           <span className="text-2xl font-semibold tracking-tight">SeedhaHissab</span>
-        </div>
+        </Link>
         <Card>
           <CardHeader className="pb-4">
             <CardTitle>Sign in</CardTitle>

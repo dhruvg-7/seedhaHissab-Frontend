@@ -32,7 +32,16 @@ export function VendorLedgerTable({ projectId }: Props) {
       {ledgers.map(l => (
         <div key={l.vendorId} className="rounded-lg border bg-card p-4" data-testid={`row-vendor-${l.vendorId}`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="font-medium" data-testid={`text-vendor-name-${l.vendorId}`}>{l.vendorName}</span>
+            <div className="min-w-0">
+              <span className="font-medium block truncate" data-testid={`text-vendor-name-${l.vendorId}`}>{l.vendorName}</span>
+              {(l.phoneNumber || l.about) && (
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  {l.phoneNumber && <span data-testid={`text-vendor-phone-${l.vendorId}`}>{l.phoneNumber}</span>}
+                  {l.phoneNumber && l.about && ' · '}
+                  {l.about && <span data-testid={`text-vendor-about-${l.vendorId}`}>{l.about}</span>}
+                </p>
+              )}
+            </div>
             <Badge
               variant={l.balance > 0 ? 'destructive' : 'secondary'}
               data-testid={`badge-vendor-balance-${l.vendorId}`}
